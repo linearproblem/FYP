@@ -79,7 +79,6 @@ def display_window(camera_frames):
     """
     Display window with sections.
     """
-    logging.error("within_displayWindow_start")
     WINDOW_WIDTH = 1280
     WINDOW_HEIGHT = 800
     NUM_ROWS = 10
@@ -103,6 +102,8 @@ def display_window(camera_frames):
     # Define the font for the text
     font = ImageFont.load_default()
 
+    # Todo: Here is where I need to add in the additional buttons that activate and deactivate viewing of the features
+
     for i in range(NUM_ROWS):
         for j in range(NUM_COLS):
             # Convert the OpenCV image to a PIL Image
@@ -123,7 +124,7 @@ def display_window(camera_frames):
 
     # Combine the section images into a single image - making up the whole menu
     combined_sections = np.vstack([np.hstack(row_images) for row_images in section_images])
-    logging.error("before_write_image_to_new_sections")
+
     # Load the camera images into the window
     if len(camera_frames) > 0 and camera_frames[0] is not None:
         combined_sections = write_image_to_sections(camera_frames[0], 2, 0, 8, 3, SECTION_WIDTH, SECTION_HEIGHT, combined_sections, proportional_scale=True)
@@ -133,5 +134,4 @@ def display_window(camera_frames):
 
     # Show the image
     cv2.imshow("My Window", combined_sections)
-    logging.error("within_displayWindow_end")
     return None

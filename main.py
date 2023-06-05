@@ -61,13 +61,6 @@ if __name__ == '__main__':
                     # run other functions
                     pass
 
-            frames = [q_rgb.get().getCvFrame() for q_rgb, _ in q_rgb_map]
-
-            # Define the callback function
-            def on_click(row, col):
-                print(f"Section ({row}, {col}) was clicked")
-
-
             # Call the function
             display_window(frames)
 

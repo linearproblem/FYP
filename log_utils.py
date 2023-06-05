@@ -5,7 +5,7 @@ from collections import deque
 def read_error_log(file_path='error.log', n=3):
     with open(file_path, 'r') as file:
         lines = deque(file, n)
-    return list(lines)
+    return '\n'.join([line.rstrip('\n') for line in lines])  # Insert linebreak between each line
 
 
 def clear_error_log(file_path='error.log'):
