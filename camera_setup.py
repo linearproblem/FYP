@@ -6,6 +6,50 @@ import json
 logging.basicConfig(filename='error.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s: %(message)s')
 
 
+def apply_camera_settings(device_id, camera):
+    """
+    Sets camera focus, exposure, iso and some other image manipulations before the image reaches the host
+    :param device_id: this is the device serial number that is used to differentiate between the two cameras
+    :param camera: the colour camera node, that the settings will be applied to
+    :return:
+    """
+    default_settings = {
+        'lens_position': 100,
+        'iso': 1500,
+        'exposure': 13500,
+        'contrast': -1,
+        'brightness': -1,
+        'saturation': 8,
+        'sharpness': 3,
+        'manual_white_balance': 4000,
+        'luma_denoise': 3,
+        'chroma_denoise': 4
+    }
+
+    if device_id == "19443010B118F81200":  # Front (Oak-D Lite)
+        default_settings['lens_position'] = 67
+        default_settings['exposure'] = 13500
+        default_settings['iso'] = 1500
+        default_settings['manual_white_balance'] = 3600
+
+    elif device_id == "19443010F19B281300":  # Rear (Oak-1)
+        default_settings['lens_position'] = 141
+        default_settings['exposure'] = 9000
+        default_settings['iso'] = 1500
+        default_settings['manual_white_balance'] = 6000
+
+    camera.initialControl.setManualFocus(default_settings['lens_position'])
+    camera.initialControl.setAutoExposureLock(True)
+    camera.initialControl.setManualExposure(default_settings['exposure'], default_settings['iso'])
+    camera.initialControl.setManualWhiteBalance(default_settings['manual_white_balance'])
+    camera.initialControl.setBrightness(default_settings['brightness'])
+    camera.initialControl.setContrast(default_settings['contrast'])
+    camera.initialControl.setSaturation(default_settings['saturation'])
+    camera.initialControl.setSharpness(default_settings['sharpness'])
+    camera.initialControl.setLumaDenoise(default_settings['luma_denoise'])
+    camera.initialControl.setChromaDenoise(default_settings['chroma_denoise'])
+
+
 def setup_object_detection(neural_network=None):
     blob_path = 'model/model.blob'
     config_path = 'model/config.json'
@@ -22,6 +66,7 @@ def setup_object_detection(neural_network=None):
     anchor_masks = yolo_params['anchor_masks']
     iou_threshold = yolo_params['iou_threshold']
     confidence_threshold = yolo_params['confidence_threshold']
+    confidence_threshold = 0.5  # Override confidence setting
 
     # Set up YOLO detection network
     if neural_network is not None:
@@ -39,7 +84,7 @@ def setup_object_detection(neural_network=None):
     return labels
 
 
-def create_pipeline():
+def create_pipeline(device_id):
     pipeline = dai.Pipeline()
 
     # Define the camera node and its properties
@@ -49,6 +94,8 @@ def create_pipeline():
     colour_camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_4_K)
     colour_camera.setInterleaved(False)
     colour_camera.setFps(5)
+    # Apply the camera settings for this device
+    apply_camera_settings(device_id, colour_camera)
 
     # This can be used to increase NN size and therefore the fov
     # colour_camera.setPreviewKeepAspectRatio(False)
@@ -84,12 +131,13 @@ def create_pipeline():
 
 def setup_camera(device_id):
     try:
-        pipeline = create_pipeline()
+        pipeline = create_pipeline(device_id)
         device = dai.Device(device_id)
-        #device = dai.Device(pipeline, maxUsbSpeed=dai.UsbSpeed.SUPER)
+        # device = dai.Device(pipeline, maxUsbSpeed=dai.UsbSpeed.SUPER)
         device.startPipeline(pipeline)
         device.setLogLevel(dai.LogLevel.DEBUG)
         device.setLogOutputLevel(dai.LogLevel.DEBUG)
+
         q_rgb = device.getOutputQueue(name="rgb", maxSize=1, blocking=False)
         q_detection = device.getOutputQueue(name="detection", maxSize=1, blocking=False)
         return device, q_rgb, q_detection

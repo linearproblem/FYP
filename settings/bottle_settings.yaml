@@ -1,0 +1,118 @@
+# Example YAML file for barcode data, active/inactive probably redundant
+barcode:
+  active: true
+  location:
+    front: true
+    rear: false
+  value: 0
+  region:
+    x0: 0
+    y0: 0
+    x1: 0
+    y1: 0
+
+artg_id:
+  active: true
+  location:
+    front: true
+    rear: false
+  value: 0
+  region:
+    x0: 0
+    y0: 0
+    x1: 0
+    y1: 0
+
+fill_level:
+  active: true
+  location:
+    front: true
+    rear: false
+  value: 0
+  region:
+    x0: 0
+    y0: 0
+    x1: 0
+    y1: 0
+
+lid_secure:
+  active: true
+  location:
+    front: false
+    rear: true
+  value: 0
+  region:
+    x0: 0
+    y0: 0
+    x1: 0
+    y1: 0
+
+label_straightness:
+  active: true
+  location:
+    front: true
+    rear: true
+  value: 0
+  region:
+    x0: 0
+    y0: 0
+    x1: 0
+    y1: 0
+
+bottle_orientation:
+  active: true
+  location: # Camera that should check the feature
+    front: true
+    rear: false
+# Bottle dimensions to nearest cm
+  dimensions:
+    width: 0
+    height: 0
+
+best_before:
+  active: true
+  location: # Camera that should check the feature
+    front: true
+    rear: false
+# Bottle dimensions to nearest cm
+  dimensions:
+    width: 0
+    height: 0
+
+
+# Feature template (for when new features are added)
+feature:
+  active: false
+  location:
+    front: false
+    rear: false
+  value: 0
+  region:
+    # normalized_to_detection_box_same_as_yolo_bboxes
+    x0: 0
+    y0: 0
+    x1: 0
+    y1: 0
+
+# Explanation of file structure:
+# Each feature is described by a set of keys and values.
+# The file contains data for barcode scanning and related features.
+# The keys use consistent naming conventions (lowercase letters and underscores).
+# The file includes comments to explain the purpose of each key and provide context for the data.
+# The YAML structure uses consistent indentation and whitespace for readability.
+
+
+#feature -- Feature Name
+#  active:  -- Global on/off for feature
+#  location: -- Set which cameras to apply the feature to
+#    front: false
+#    rear: false
+#  value: -- A value associated with the feature if applicable (e.g. barcode number)
+#  region: -- Normalised expected region of the feature, normalised to bottle dimensions (0-1)
+#    x0: -- Top left hand corner X-value
+#    y0: 0 -- Top left hand corner Y-value
+#    x1: 0 -- Top right hand corner X-value
+#    y1: 0 -- Top right hand corner Y-value
+#  dimensions: -- For orientation detection, dims of bottle including lid (corresponds to detection box)
+#    width: -- Bottle width in cm
+#    height: -- Bottle height in cm
