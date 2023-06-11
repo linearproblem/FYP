@@ -1,6 +1,22 @@
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+# Standard library imports
+import os
+import sys
+import time
 
+# Related third-party imports
+import numpy as np
+import contextlib
+import cv2
+
+# Local imports
+import camera_setup
+import config_parser
+from log_utils import read_error_log, clear_error_log
+from gui_window import display_window
+from object_detection_utils import draw_bounding_box, crop_bounding_box
+
+from barcode_decoder import decode_barcode
+from bottle_orientation import is_bottle_upright
 
 
 def print_hi(name):
@@ -20,21 +36,6 @@ if __name__ == '__main__':
     #   - Setup Camera
     #   - Setup camera links
 
-    # Standard library imports
-    import os
-    import sys
-
-    # Related third-party imports
-    import numpy as np
-    import contextlib
-    import cv2
-
-    # Local imports
-    import camera_setup
-    from log_utils import read_error_log, clear_error_log
-    from gui_window import display_window
-
-    # Variables
     # Camera IDs
     front_camera = "19443010B118F81200"  # Front (Oak-D Lite)
     rear_camera = "19443010F19B281300"  # Rear (Oak-1)
@@ -43,17 +44,22 @@ if __name__ == '__main__':
     quality_checks = config_parser.get_bottle_settings('settings/bottle_settings.yaml')
 
     # Setup
+    devices = []
+    q_rgb_map = []
+    active_feature = None
+    active_frame = []  # Store frame of active feature
+
     with contextlib.ExitStack() as stack:
-        devices = []
-        q_rgb_map = []
 
         for device_id in [front_camera, rear_camera]:
-            device, q_rgb = camera_setup.setup_camera(device_id)
-            if device is None or q_rgb is None:  # Camera not found
+            device, q_rgb, q_detection = camera_setup.setup_camera(device_id)  # Device and data queues
+            if device is None or q_rgb is None or q_detection is None:  # Camera not found/queue error
                 continue
             device = stack.enter_context(device)  # ensure device is kept alive and cleaned up properly
             devices.append(device)
-            q_rgb_map.append((q_rgb, device_id))  # Include the device_id for later reference
+            q_rgb_map.append((q_rgb, device_id, q_detection))
+            last_time = time.time()  # Initialise to current time
+
         while True:
             # From each camera, get an image frame, the device ID and the detected objects (if objects detected)
             frames = [(q_rgb.get().getCvFrame(), device_id, q_detection.get() if q_detection.has() else None)
@@ -90,7 +96,9 @@ if __name__ == '__main__':
             # Display the images in the window and get clicked feature if applicable
             active_feature = display_window(frames, quality_checks)
 
-            if cv2.waitKey(1) == ord('q'):
+            # Close window when q,Q or Esc key pressed
+            key = cv2.waitKey(1)
+            if key in [ord('q'), ord('Q'), 27]:
                 cv2.destroyAllWindows()
                 break
             # Save frame when 's' key is pressed

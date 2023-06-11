@@ -50,18 +50,14 @@ def write_image_to_sections(image, start_row, start_col, num_rows, num_cols, sec
     """
     Write image into sections maintaining aspect ratio.
     """
-    logging.error("within_write_image_to_sections_start")
     num_img_rows = start_row + num_rows
     num_img_cols = start_col + num_cols
-    logging.error("proportional_scale_start")
     # Maintain Original Aspect ratio by padding image
     if proportional_scale:
         image = pad_image(image, num_cols, num_rows, section_width, section_height)
-    logging.error("proportional_scale_end----Resize_start")
     # Ensure image fits within this many sections
     img = cv2.resize(image, (section_width * num_cols, section_height * num_rows))
-    logging.error("resize_end")
-    logging.error("Start_for_loop")
+
     for i in range(start_row, num_img_rows):
         for j in range(start_col, num_img_cols):
             x = j * section_width
@@ -69,12 +65,11 @@ def write_image_to_sections(image, start_row, start_col, num_rows, num_cols, sec
 
             if y + section_height > combined_sections.shape[0] or x + section_width > combined_sections.shape[1]:
                 continue
-            logging.error("combined_sections_start")
-            combined_sections[y:y + section_height, x:x + section_width] = img[(i - start_row) * section_height:(i - start_row + 1) * section_height,
-                                                                              (j - start_col) * section_width:(j - start_col + 1) * section_width]
-            logging.error("combined_sections_end----end_for_loop")
-    logging.error("end_for_loop")
-    logging.error("within_write_image_to_sections_end")
+
+            combined_sections[y:y + section_height, x:x + section_width] = img[(i - start_row) * section_height:(
+                                                                                                                        i - start_row + 1) * section_height,
+                                                                           (j - start_col) * section_width:(
+                                                                                                                   j - start_col + 1) * section_width]
     return combined_sections
 
 
