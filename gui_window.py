@@ -16,7 +16,7 @@ NUM_ROWS = 10
 NUM_COLS = 6
 SECTION_HEIGHT = int(WINDOW_HEIGHT / NUM_ROWS)
 SECTION_WIDTH = int(WINDOW_WIDTH / NUM_COLS)
-FONT_PATH = "/settings/arial.ttf"
+FONT_PATH = "./settings/arial.ttf"
 FONT_SIZE = 20
 click_position = [None, None]  # Used to store section clicked in GUI
 
