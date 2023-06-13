@@ -14,7 +14,7 @@ import camera_setup
 import config_parser
 from log_utils import read_error_log, clear_error_log
 from gui_window import display_window
-from object_detection_utils import process_frames, find_barcode, draw_bounding_boxes_on_frames
+from object_detection_utils import process_frames, find_barcode, draw_bounding_boxes_on_frames, label_straightness_simple
 
 # Quality Checks
 from barcode_decoder import decode_barcode
@@ -95,7 +95,7 @@ if __name__ == '__main__':
                         _, active_frame = detect_batch_expiry_and_best_before(selected_frame, return_frame=True)
                     elif active_feature == 'label_straightness':
                         selected_frame = rear_bottle_frame if barcode_camera_id == rear_camera else front_bottle_frame
-                        _, active_frame = None #  frames
+                        active_frame = label_straightness_simple(frames)
                         None
                     else:
                         active_frame = None
@@ -125,3 +125,5 @@ if __name__ == '__main__':
 
     print(read_error_log())
     clear_error_log()
+
+

@@ -27,6 +27,10 @@ def pad_image(image, num_cols, num_rows, section_width, section_height):
     """
     aspect_ratio_sections = (num_cols * section_width) / (num_rows * section_height)
     img_height, img_width, _ = image.shape
+
+    # Division by 0 fix
+    if img_height == 0:
+        img_height = 100
     aspect_ratio_img = img_width / img_height
 
     # If the current aspect ratio is smaller than the target aspect ratio, add padding to the left and right
