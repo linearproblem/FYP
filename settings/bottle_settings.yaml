@@ -58,7 +58,7 @@ bottle_orientation:
     height: 0
 
 best_before:
-  active: true
+  active: false
   location: # Camera that should check the feature
     front: true
     rear: false

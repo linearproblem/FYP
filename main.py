@@ -22,30 +22,21 @@ from bottle_orientation import is_bottle_upright
 from fill_level import evaluate_bottle_fill
 from artg_id import detect_artg_id
 from bottle_cap import distance_between_horizontal_lines, is_cap_secure
+from batch_information import detect_batch_expiry_and_best_before
 
 
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
     #image = cv2.imread('frame.tiff', cv2.IMREAD_UNCHANGED)
-    # image = cv2.imread('./saved_images/front_frame_green.tiff', 0)
-    # res = is_cap_secure(image, return_frame=True)
-    # print(res)
-    # exit()
+    # image = cv2.imread('./saved_images/front_frame_green.tiff')
 
-    # Todo:
-    #   - Setup imports
-    #   - Define locations for files
-    #   - (menu will eventually go here)
-    #   - Get Settings (hardcode bottle for now)
-    #   - Setup Camera
-    #   - Setup camera links
+    #print(res)
+    # while True:
+    #     cv2.imshow("window", res)
+    #     cv2.waitKey(1)
+    # exit()
 
     # Call the function and store the returned values
     quality_checks = config_parser.get_bottle_settings('settings/bottle_settings.yaml')
@@ -76,7 +67,6 @@ if __name__ == '__main__':
             frames = [(q_rgb.get().getCvFrame(), device_id, q_detection.get() if q_detection.has() else None)
                       for q_rgb, device_id, q_detection in q_rgb_map]
 
-            # Todo: see example code to figure out if a buffer might be useful, may need to do some testing
             front_bottle_frame, rear_bottle_frame = process_frames(frames)
             barcode_frame, barcode_camera_id = find_barcode(frames)
             draw_bounding_boxes_on_frames(frames)
@@ -88,7 +78,7 @@ if __name__ == '__main__':
                     if active_feature == 'barcode' and barcode_frame is not None:
                         _, active_frame = decode_barcode(barcode_frame, return_frame=True)
                     elif active_feature == 'bottle_orientation':
-                        _, active_frame = is_bottle_upright(front_bottle_frame, return_frame=True)
+                        _, active_frame = is_bottle_upright(rear_bottle_frame, return_frame=True)
                         pass
                     elif active_feature == 'fill_level':
                         _, active_frame = evaluate_bottle_fill(rear_bottle_frame, return_frame=True)
@@ -100,6 +90,10 @@ if __name__ == '__main__':
                         pass
                     elif active_feature == 'cap_secure':
                         _, active_frame = is_cap_secure(front_bottle_frame, return_frame=True)
+                    elif active_feature == 'best_before':
+                        selected_frame = rear_bottle_frame if barcode_camera_id == rear_camera else front_bottle_frame
+                        _, active_feature = detect_batch_expiry_and_best_before(selected_frame, return_frame=True)
+
                     else:
                         active_frame = None
 

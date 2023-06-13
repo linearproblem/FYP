@@ -6,7 +6,10 @@ from pyzbar.pyzbar import decode, ZBarSymbol
 import pytesseract
 from gui_window import FONT_PATH
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\OCR\Tesseract-OCR\tesseract.exe'  # Required for Windows
+import platform
+
+if platform.system() == 'Windows':
+    pytesseract.pytesseract.tesseract_cmd = r'C:\OCR\Tesseract-OCR\tesseract.exe'  # Required for Windows
 
 # Barcode-product mapping
 barcode_to_product = {

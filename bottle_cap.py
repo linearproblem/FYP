@@ -6,8 +6,12 @@ def erode_and_dilate(img, erode_dimensions, dilate_dimensions):
     """Perform erosion and dilation of an image.
     This is 'opening' the image in morphology terms
     """
-    mask = cv2.erode(img, np.ones(erode_dimensions, "uint8"))
-    return cv2.dilate(mask, np.ones(dilate_dimensions, "uint8"))
+    if img is not None and img.size > 0:
+        mask = cv2.erode(img, np.ones(erode_dimensions, "uint8"))
+        if mask is None or len(mask.shape) == 0:
+            return None
+        return cv2.dilate(mask, np.ones(dilate_dimensions, "uint8"))
+    return None
 
 
 def apply_clahe(img):
@@ -30,18 +34,17 @@ def canny_edge_detection(img, lower_thresh, upper_thresh):
     img_contours = np.zeros(edges.shape)
     cv2.drawContours(img_contours, contours, -1, 255, 3)
     return img_contours.astype(np.uint8)
-    #return edges
 
 
 def get_edges(img, canny_lower_thresh, canny_upper_thresh):
     """Perform edge detection on an image."""
-    img = cv2.medianBlur(erode_and_dilate(img, (8, 0), (32, 0)), 9)
-    img = apply_clahe(img)
-    return canny_edge_detection(img, canny_lower_thresh, canny_upper_thresh)
-
-
-import cv2
-import numpy as np
+    img_processed = erode_and_dilate(img, (8, 0), (32, 0))
+    if img_processed is None:
+        print("Image could not be processed in erode_and_dilate.")
+        return None
+    img_processed = cv2.medianBlur(img_processed, 9)
+    img_processed = apply_clahe(img_processed)
+    return canny_edge_detection(img_processed, canny_lower_thresh, canny_upper_thresh)
 
 
 def distance_between_horizontal_lines(img_grey, region_top, region_bottom, return_frames=False):
@@ -136,7 +139,9 @@ def distance_between_horizontal_lines(img_grey, region_top, region_bottom, retur
         return list(nX), list(nY)
 
     # Edge detection
-    edges = get_edges(img_grey,50,150)#cv2.Canny(img_grey, 50, 150, apertureSize=3)
+    edges = get_edges(img_grey, 50, 150)  # cv2.Canny(img_grey, 50, 150, apertureSize=3)
+    if edges is None:
+        return None, None
 
     # Line detection
     # lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=5, maxLineGap=50)
@@ -146,14 +151,16 @@ def distance_between_horizontal_lines(img_grey, region_top, region_bottom, retur
     region_top = convert_relative_to_pixel_coordinates(img_grey, region_top)
     region_bottom = convert_relative_to_pixel_coordinates(img_grey, region_bottom)
 
-    ## TODO: DEBUGGING FROM HERE
-
     if lines is None:
         return None, None
 
-    angle = 45  # * np.pi / 180  # Convert angle to radians
-    x_top, y_top = find_all_lines_in_region(lines, angle, region_top)
-    x_bottom, y_bottom = find_all_lines_in_region(lines, angle, region_bottom)
+    angle = 40  # * np.pi / 180  # Convert angle to radians
+
+    #x_top, y_top = find_all_lines_in_region(lines, angle, region_top)
+    #x_bottom, y_bottom = find_all_lines_in_region(lines, angle, region_bottom)
+
+    x_top, y_top = new_get_lines_in_region(lines, region_top)
+    x_bottom, y_bottom = new_get_lines_in_region(lines, region_bottom)
 
     # Lines not found in regions
     return_flag = False
@@ -173,25 +180,26 @@ def distance_between_horizontal_lines(img_grey, region_top, region_bottom, retur
 
     if return_flag:
         return None, None
-    try:
-        x_top, y_top = sort_lists(x_top, y_top)
-        x_bottom, y_bottom = sort_lists(x_bottom, y_bottom)
-        x_top, y_top = remove_outliers(x_top, y_top)
-        x_bottom, y_bottom = remove_outliers(x_bottom, y_bottom)
-    except:
-        print("cunt")
-
-    if len(x_top) > 1:
-        y_avg_top = sum(y_top) / len(y_top)
-    else:
-        return None, None
-
-    if len(x_bottom) > 1:
-        y_avg_bottom = sum(y_bottom) / len(y_bottom)
-    else:
-        return None, None
-
-    distance_in_px = y_avg_bottom - y_avg_top
+    distance_in_px = y_bottom - y_top
+    # try:
+    #     x_top, y_top = sort_lists(x_top, y_top)
+    #     x_bottom, y_bottom = sort_lists(x_bottom, y_bottom)
+    #     x_top, y_top = remove_outliers(x_top, y_top)
+    #     x_bottom, y_bottom = remove_outliers(x_bottom, y_bottom)
+    # except:
+    #     None
+    #
+    # if len(x_top) > 1:
+    #     y_avg_top = sum(y_top) / len(y_top)
+    # else:
+    #     return None, None
+    #
+    # if len(x_bottom) > 1:
+    #     y_avg_bottom = sum(y_bottom) / len(y_bottom)
+    # else:
+    #     return None, None
+    #
+    # distance_in_px = y_avg_bottom - y_avg_top
     if not return_frames:
         return distance_in_px, None
 
@@ -208,19 +216,37 @@ def distance_between_horizontal_lines(img_grey, region_top, region_bottom, retur
     cv2.rectangle(lines_image, tuple(region_bottom[0]), tuple(region_bottom[1]), (255, 0, 0),
                   2)  # Draw rectangle in blue color
 
-    cv2.line(lines_image, (x_bottom[0], y_bottom[0]), (x_bottom[1], y_bottom[1]), (255, 0, 0), 10)
-    cv2.line(lines_image, (x_top[0], y_top[0]), (x_top[1], y_top[1]), (255, 0, 0), 10)
+    # cv2.line(lines_image, (x_bottom[0], y_bottom[0]), (x_bottom[1], y_bottom[1]), (255, 0, 0), 10)
+    # cv2.line(lines_image, (x_top[0], y_top[0]), (x_top[1], y_top[1]), (255, 0, 0), 10)
 
     # Distance line
-    cv2.line(lines_image, (x_top[0], y_top[0]), (x_top[0], int(y_top[0] + int(distance_in_px))), (0, 255, 255), 3)
+    # cv2.line(lines_image, (x_top[0], y_top[0]), (x_top[0], int(y_top[0] + int(distance_in_px))), (0, 255, 255), 5)
+    # cv2.line(lines_image, (x_top[len(x_top)-1], lines_image.shape[0]), (x_top[len(x_top)-1]+20, y_top[0]), (255, 255, 0), 3)
+    #
+    # Horizontal line at the top
+    cv2.line(lines_image, (0, y_top), (lines_image.shape[1] - 1, y_top), (255, 0, 255), 3)
+
+    # Horizontal line at the bottom
+    cv2.line(lines_image, (0, int(y_top + int(distance_in_px))),
+             (lines_image.shape[1] - 1, int(y_top + int(distance_in_px))), (255, 0, 255), 3)
+
+    cv2.line(lines_image, (x_top-10, y_top), (x_top, int(y_top + int(distance_in_px))), (0, 255, 255), 8)
+    cv2.line(lines_image, (x_top, lines_image.shape[0]), (x_top+20, y_top), (255, 255, 0), 4)
     edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
     return distance_in_px, np.hstack([edges, lines_image])
 
 
 def is_cap_secure(bottle_frame, return_frame=False):
     cap_secure = False
-    cap_region = ((0.29353932584269665, 0.07612293144208038), (0.8146067415730337, 0.12671394799054372))
-    top_edge_region = ((0.11797752808988764, 0.19574468085106383), (0.8918539325842697, 0.2515366430260047))
+    # cap_region = ((0.29353932584269665, 0.07612293144208038), (0.8146067415730337, 0.12671394799054372))
+
+    screw_cap = True
+    if screw_cap:
+        cap_region = ((0.32, 0.05612293144208038), (0.8, 0.12671394799054372))
+        top_edge_region = ((0.11797752808988764, 0.19574468085106383), (0.8918539325842697, 0.2515366430260047))
+    else:
+        cap_region = ((0.30, 0.01), (0.65, 0.07))
+        top_edge_region = ((0.06, 0.14), (0.94, 0.19))
     distance_in_px, frame = distance_between_horizontal_lines(bottle_frame, cap_region, top_edge_region, return_frame)
 
     if distance_in_px is not None:
@@ -233,3 +259,38 @@ def is_cap_secure(bottle_frame, return_frame=False):
         return cap_secure, frame
     else:
         return None, None
+
+
+
+def new_get_lines_in_region(lines, region):
+    ((x0, y0), (x1, y1)) = region
+
+    #  Empty list to store points
+    points_in_region = []
+
+    # Iterate through all the detected lines
+    for line in lines:
+        for x_start, y_start, x_end, y_end in line:
+            # Generate points for the line
+            # Generate points in proportion to the length of the line
+            num_points = max(abs(x_end - x_start), abs(y_end - y_start))
+            x_points = np.linspace(x_start, x_end, num_points + 1, dtype=int)
+            y_points = np.linspace(y_start, y_end, num_points + 1, dtype=int)
+
+            # Check each point
+            for point_x, point_y in zip(x_points, y_points):
+                # Check if point is inside the region
+                if x0 <= point_x <= x1 and y0 <= point_y <= y1:
+                    points_in_region.append((point_x, point_y))
+
+    # Convert list to numpy array for easier manipulation
+    points_in_region = np.array(points_in_region)
+
+    # Compute the median coordinates (ignoring outliers)
+    if len(points_in_region) > 0:
+        x_mean = int(np.mean(points_in_region[:, 0]))  # Get all x coordinates and find median
+        y_medians = int(np.median(points_in_region[:, 1]))  # Get all y coordinates and find median
+    else:
+        x_mean, y_medians = None, None
+
+    return x_mean, y_medians
