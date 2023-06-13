@@ -58,9 +58,6 @@ if __name__ == '__main__':
     active_feature = None
     active_frame = None  # Store frame of current active feature
     barcode_camera_id = None  # Stores the camera that has found the barcode
-    last_time = 0
-    frame_count = 0
-    fps_time = 0
 
     with contextlib.ExitStack() as stack:
 
@@ -110,13 +107,6 @@ if __name__ == '__main__':
                 last_time = time.time()
             else:  # Less than a second has passed
                 pass
-
-            frame_count = frame_count + 1
-            #print(current_time, fps_time)
-            if current_time - fps_time >= 2:
-                print(frame_count)
-                frame_count=0
-                fps_time = time.time()
 
             if active_feature is not None and active_frame is not None:
                 frames[0] = (active_frame, frames[0][1], frames[0][2])
