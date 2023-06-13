@@ -58,6 +58,7 @@ if __name__ == '__main__':
     active_feature = None
     active_frame = None  # Store frame of current active feature
     barcode_camera_id = None  # Stores the camera that has found the barcode
+    last_time = 0
 
     with contextlib.ExitStack() as stack:
 
