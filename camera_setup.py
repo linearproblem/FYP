@@ -34,7 +34,7 @@ def apply_camera_settings(device_id, camera):
 
     elif device_id == "19443010F19B281300":  # Rear (Oak-1)
         default_settings['lens_position'] = 141
-        default_settings['exposure'] = 9000
+        default_settings['exposure'] = 9000  # 3000
         default_settings['iso'] = 1500
         default_settings['manual_white_balance'] = 6000
 

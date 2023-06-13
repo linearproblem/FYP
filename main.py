@@ -92,8 +92,11 @@ if __name__ == '__main__':
                         _, active_frame = is_cap_secure(front_bottle_frame, return_frame=True)
                     elif active_feature == 'best_before':
                         selected_frame = rear_bottle_frame if barcode_camera_id == rear_camera else front_bottle_frame
-                        _, active_feature = detect_batch_expiry_and_best_before(selected_frame, return_frame=True)
-
+                        _, active_frame = detect_batch_expiry_and_best_before(selected_frame, return_frame=True)
+                    elif active_feature == 'label_straightness':
+                        selected_frame = rear_bottle_frame if barcode_camera_id == rear_camera else front_bottle_frame
+                        _, active_frame = None #  frames
+                        None
                     else:
                         active_frame = None
 

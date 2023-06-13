@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 from gui_window import FONT_PATH
 
-def text_preprocessing(img_bgr, scale_factor=3, blur_value=(5, 5)):
+def text_preprocessing(img_bgr, scale_factor=20, blur_value=(5, 5)):
     """
     Function to pre-process image for text detection.
     Parameters:
@@ -38,7 +38,7 @@ def text_preprocessing(img_bgr, scale_factor=3, blur_value=(5, 5)):
 
     # Adjust the luminance of the original L channel using the mask
 
-    l_channel_adjusted = cv2.addWeighted(l_channel, 0.5, l_channel_mask.astype(l_channel.dtype), 0.01, 0.0)
+    l_channel_adjusted = cv2.addWeighted(l_channel, 2.5, l_channel_mask.astype(l_channel.dtype), 0.01, 0.0)
 
     # Replace the Luminance channel in the original HSL image with the adjusted L channel
     # This is effectively the greyscale channel but this allows the result to be viewed in colour
@@ -49,6 +49,30 @@ def text_preprocessing(img_bgr, scale_factor=3, blur_value=(5, 5)):
 
     return img_processed
 
+
+def process_dot_matrix_print(bgr_image):
+    # Convert the image to gray scale
+    gray = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
+
+    # Binary thresholding on the image
+
+    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                   cv2.THRESH_BINARY, 51, 8)
+    binary = cv2.fastNlMeansDenoising(binary, h=10, templateWindowSize=7, searchWindowSize=21)
+
+    # Defining a kernel for erosion and dilation
+    kernel = np.ones((2, 2), np.uint8)
+
+    # Using erosion followed by dilation to connect the dots in dot matrix prints
+    img_erosion = cv2.erode(binary, kernel, iterations=1)
+    img_dilation = cv2.dilate(img_erosion, kernel, iterations=1)
+
+    # Convert the processed binary image back to BGR
+    bgr_result = cv2.cvtColor(img_dilation, cv2.COLOR_GRAY2BGR)
+
+    return bgr_result
+
+
 def detect_batch_expiry_and_best_before(frame, return_frame=False):
     if frame is None:
         return None, None
@@ -58,6 +82,8 @@ def detect_batch_expiry_and_best_before(frame, return_frame=False):
     x1 = 0.96
     y0 = 0.20  # Made a bit taller to have room to fit the text
     y1 = 0.30
+
+    # x0, x1, y0, y1 = (0, 1, 0, 1)
 
     # Convert normalised coordinates to pixel values
     y0_px = int(y0 * frame.shape[0])
@@ -72,13 +98,15 @@ def detect_batch_expiry_and_best_before(frame, return_frame=False):
     if info_frame is None:
         return None, None
 
-    preprocessed_info_frame = text_preprocessing(np.copy(info_frame))
+    #preprocessed_info_frame = text_preprocessing(np.copy(info_frame))
+    preprocessed_info_frame = process_dot_matrix_print(np.copy(info_frame))
+    info_frame = cv2.resize(info_frame, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    preprocessed_info_frame = cv2.resize(preprocessed_info_frame, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
 
     # Perform OCR
     for frame in [preprocessed_info_frame, info_frame]:
-        custom_config = r'-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ:1234567890/ --psm 6'
+        custom_config = r'-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ:1234567890/ --psm 6 --oem 3 '
         extracted_text = pytesseract.image_to_string(frame, config=custom_config)
-        print(extracted_text)
         # Check with regular expressions
         batch_number_match = re.search(r'BN([A-Z0-9]+)', extracted_text)
         expiry_date_match = re.search(r'EXP([0-9/]+)', extracted_text)
@@ -94,6 +122,8 @@ def detect_batch_expiry_and_best_before(frame, return_frame=False):
         info_found = True
     else:
         info_found = False
+
+
 
     if return_frame:
         if info_found:
@@ -123,4 +153,10 @@ def detect_batch_expiry_and_best_before(frame, return_frame=False):
 
         frame = np.vstack([preprocessed_info_frame, info_frame])
 
-    return info_found, None if not return_frame else frame
+    if return_frame:
+        return info_found, frame
+    else:
+        return info_found, None
+    # return info_found, None if not return_frame else frame
+
+
