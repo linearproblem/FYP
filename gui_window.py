@@ -112,7 +112,12 @@ def create_section_images():
     for i in range(NUM_ROWS):
         row_images = []
         for j in range(NUM_COLS):
-            section = np.zeros((SECTION_HEIGHT, SECTION_WIDTH, 3), dtype=np.uint8)
+            # Highlight active feature if there is one present
+            if click_position != (None, None) and [i, j] == list(click_position) and not (i > 0 and j > 0):
+                section = np.full((SECTION_HEIGHT, SECTION_WIDTH, 3), [170, 0, 60], dtype=np.uint8)
+            else:
+                # Just make the section a black box if feature not present
+                section = np.zeros((SECTION_HEIGHT, SECTION_WIDTH, 3), dtype=np.uint8)
             row_images.append(section)
         section_images.append(row_images)
     return section_images
@@ -181,16 +186,17 @@ def display_window(camera_frames, quality_checks=None):
     combined_sections = np.vstack([np.hstack(row_images) for row_images in section_images])
 
     # Load the camera images into the window
-    camera_frames = [frame_tuple[0] for frame_tuple in camera_frames]
-    if len(camera_frames) > 0:
-        if camera_frames[0] is not None:
-            combined_sections = write_image_to_sections(camera_frames[0], 2, 0, 8, 3, SECTION_WIDTH, SECTION_HEIGHT,
-                                                        combined_sections, proportional_scale=True)
+    if camera_frames is not None:
+        camera_frames = [frame_tuple[0] for frame_tuple in camera_frames]
+        if len(camera_frames) > 0:
+            if camera_frames[0] is not None:
+                combined_sections = write_image_to_sections(camera_frames[0], 2, 0, 8, 3, SECTION_WIDTH, SECTION_HEIGHT,
+                                                            combined_sections, proportional_scale=True)
 
-    if len(camera_frames) > 1:
-        if camera_frames[1] is not None:
-            combined_sections = write_image_to_sections(camera_frames[1], 2, 3, 8, 3, SECTION_WIDTH, SECTION_HEIGHT,
-                                                        combined_sections, proportional_scale=True)
+        if len(camera_frames) > 1:
+            if camera_frames[1] is not None:
+                combined_sections = write_image_to_sections(camera_frames[1], 2, 3, 8, 3, SECTION_WIDTH, SECTION_HEIGHT,
+                                                            combined_sections, proportional_scale=True)
 
     # Show the image
     cv2.namedWindow("My Window", cv2.WND_PROP_FULLSCREEN)

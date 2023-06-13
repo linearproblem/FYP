@@ -93,7 +93,8 @@ def create_pipeline(device_id):
     colour_camera.setBoardSocket(dai.CameraBoardSocket.RGB)
     colour_camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_4_K)
     colour_camera.setInterleaved(False)
-    colour_camera.setFps(5)
+    #colour_camera.setFps(5)
+    colour_camera.setFps(30)
     # Apply the camera settings for this device
     apply_camera_settings(device_id, colour_camera)
 

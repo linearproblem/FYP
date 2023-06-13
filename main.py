@@ -9,14 +9,20 @@ import contextlib
 import cv2
 
 # Local imports
+from settings.camera_id import front_camera, rear_camera
 import camera_setup
 import config_parser
 from log_utils import read_error_log, clear_error_log
 from gui_window import display_window
-from object_detection_utils import draw_bounding_box, crop_bounding_box
+from object_detection_utils import process_frames, find_barcode, draw_bounding_boxes_on_frames
 
+# Quality Checks
 from barcode_decoder import decode_barcode
 from bottle_orientation import is_bottle_upright
+from fill_level import evaluate_bottle_fill
+from artg_id import detect_artg_id
+from bottle_cap import distance_between_horizontal_lines, is_cap_secure
+
 
 
 def print_hi(name):
@@ -27,6 +33,11 @@ def print_hi(name):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     print_hi('PyCharm')
+    #image = cv2.imread('frame.tiff', cv2.IMREAD_UNCHANGED)
+    # image = cv2.imread('./saved_images/front_frame_green.tiff', 0)
+    # res = is_cap_secure(image, return_frame=True)
+    # print(res)
+    # exit()
 
     # Todo:
     #   - Setup imports
@@ -36,18 +47,20 @@ if __name__ == '__main__':
     #   - Setup Camera
     #   - Setup camera links
 
-    # Camera IDs
-    front_camera = "19443010B118F81200"  # Front (Oak-D Lite)
-    rear_camera = "19443010F19B281300"  # Rear (Oak-1)
-
     # Call the function and store the returned values
     quality_checks = config_parser.get_bottle_settings('settings/bottle_settings.yaml')
 
     # Setup
     devices = []
     q_rgb_map = []
+    front_bottle_frame = None
+    rear_bottle_frame = None
     active_feature = None
-    active_frame = []  # Store frame of active feature
+    active_frame = None  # Store frame of current active feature
+    barcode_camera_id = None  # Stores the camera that has found the barcode
+    last_time = 0
+    frame_count = 0
+    fps_time = 0
 
     with contextlib.ExitStack() as stack:
 
@@ -66,32 +79,47 @@ if __name__ == '__main__':
                       for q_rgb, device_id, q_detection in q_rgb_map]
 
             # Todo: see example code to figure out if a buffer might be useful, may need to do some testing
-            for frame, device_id, detection in frames:
-                bottle_frame = crop_bounding_box(np.copy(frame), detection)
-                barcode_frame = crop_bounding_box(np.copy(frame), detection, barcode=True)
+            front_bottle_frame, rear_bottle_frame = process_frames(frames)
+            barcode_frame, barcode_camera_id = find_barcode(frames)
+            draw_bounding_boxes_on_frames(frames)
 
-                if device_id == front_camera:
-                    # run certain functions
-                    frame = draw_bounding_box(frame, detection)
-                    pass
-                elif device_id == rear_camera:
-                    # run other functions
-                    frame = draw_bounding_box(frame, detection)
-                    pass
-
-                current_time = time.time()
-                if current_time - last_time >= 1:  # A second has passed
-                    print("Less than a second has passed since last run")
-                    if active_feature == 'barcode':
+            # Run checks
+            current_time = time.time()
+            if current_time - last_time >= 0.00001:  # A second has passed
+                if front_bottle_frame is not None and rear_bottle_frame is not None:
+                    if active_feature == 'barcode' and barcode_frame is not None:
                         _, active_frame = decode_barcode(barcode_frame, return_frame=True)
                     elif active_feature == 'bottle_orientation':
-                        _, active_frame = is_bottle_upright(bottle_frame, return_frame=True)
+                        _, active_frame = is_bottle_upright(front_bottle_frame, return_frame=True)
                         pass
-                else:  # Less than a second has passed
-                    pass
+                    elif active_feature == 'fill_level':
+                        _, active_frame = evaluate_bottle_fill(rear_bottle_frame, return_frame=True)
+                        pass
+                    elif active_feature == 'artg_id' and barcode_camera_id is not None:
+                        # Choose camera that is on the opposite side to the barcode
+                        selected_frame = rear_bottle_frame if barcode_camera_id == front_camera else front_bottle_frame
+                        _, active_frame = detect_artg_id(selected_frame, return_frame=True)
+                        pass
+                    elif active_feature == 'cap_secure':
+                        _, active_frame = is_cap_secure(front_bottle_frame, return_frame=True)
+                    else:
+                        active_frame = None
 
-                if active_feature is not None:
-                    frames[0] = (active_frame, frames[0][1], frames[0][2])
+                else:
+                    active_frame = None
+                last_time = time.time()
+            else:  # Less than a second has passed
+                pass
+
+            frame_count = frame_count + 1
+            #print(current_time, fps_time)
+            if current_time - fps_time >= 2:
+                print(frame_count)
+                frame_count=0
+                fps_time = time.time()
+
+            if active_feature is not None and active_frame is not None:
+                frames[0] = (active_frame, frames[0][1], frames[0][2])
 
             # Display the images in the window and get clicked feature if applicable
             active_feature = display_window(frames, quality_checks)
@@ -102,8 +130,10 @@ if __name__ == '__main__':
                 cv2.destroyAllWindows()
                 break
             # Save frame when 's' key is pressed
-            elif key == ord('s'):
-                cv2.imwrite('frame.tiff', bottle_frame)  # Save the bottle frame from last camera
+            elif key == ord('f'):
+                cv2.imwrite('saved_images/front_frame.tiff', front_bottle_frame)
+            elif key == ord('r'):
+                cv2.imwrite('saved_images/rear_frame.tiff', rear_bottle_frame)
 
     print(read_error_log())
     clear_error_log()

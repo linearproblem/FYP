@@ -35,22 +35,10 @@ fill_level:
     x1: 0
     y1: 0
 
-lid_secure:
+cap_secure:
   active: true
   location:
     front: false
-    rear: true
-  value: 0
-  region:
-    x0: 0
-    y0: 0
-    x1: 0
-    y1: 0
-
-label_straightness:
-  active: true
-  location:
-    front: true
     rear: true
   value: 0
   region:
@@ -78,6 +66,19 @@ best_before:
   dimensions:
     width: 0
     height: 0
+
+
+label_straightness:
+  active: false
+  location:
+    front: true
+    rear: true
+  value: 0
+  region:
+    x0: 0
+    y0: 0
+    x1: 0
+    y1: 0
 
 
 # Feature template (for when new features are added)
