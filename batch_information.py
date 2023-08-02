@@ -5,58 +5,13 @@ from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 from gui_window import FONT_PATH
 
-def text_preprocessing(img_bgr, scale_factor=20, blur_value=(5, 5)):
-    """
-    Function to pre-process image for text detection.
-    Parameters:
-        img_bgr (str): The path to the image file
-        scale_factor (float): The factor by which to scale the image
-        blur_value (tuple): The kernel size for the Gaussian blur
-    Returns:
-        img_processed (np.array): The processed image array
-    """
-
-    # Convert the BGR image to HSL
-    img_hsl = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HLS)
-
-    # Extract the L channel
-    l_channel = img_hsl[:, :, 1]
-
-    # Scale the L channel
-    l_channel_scaled = cv2.resize(l_channel, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
-
-    # Apply Gaussian blur to the L channel
-    l_channel_blurred = cv2.GaussianBlur(l_channel_scaled, blur_value, 0)
-
-    # Apply Adaptive Thresholding to the L channel
-    l_channel_mask = cv2.adaptiveThreshold(np.copy(l_channel_blurred), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                           cv2.THRESH_BINARY,
-                                           5, 2)
-
-    # Scale the mask back to original L channel size
-    l_channel_mask = cv2.resize(l_channel_mask, (l_channel.shape[1], l_channel.shape[0])) // 255.0
-
-    # Adjust the luminance of the original L channel using the mask
-
-    l_channel_adjusted = cv2.addWeighted(l_channel, 2.5, l_channel_mask.astype(l_channel.dtype), 0.01, 0.0)
-
-    # Replace the Luminance channel in the original HSL image with the adjusted L channel
-    # This is effectively the greyscale channel but this allows the result to be viewed in colour
-    img_hsl[:, :, 1] = l_channel_adjusted.astype('uint8')
-
-    # Convert the HSL image back to BGR
-    img_processed = cv2.cvtColor(img_hsl, cv2.COLOR_HLS2BGR)
-
-    return img_processed
-
-
 def process_dot_matrix_print(bgr_image):
     # Convert the image to gray scale
-    gray = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
+    grey = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
 
     # Binary thresholding on the image
 
-    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    binary = cv2.adaptiveThreshold(grey, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                    cv2.THRESH_BINARY, 51, 8)
     binary = cv2.fastNlMeansDenoising(binary, h=10, templateWindowSize=7, searchWindowSize=21)
 
@@ -81,7 +36,8 @@ def detect_batch_expiry_and_best_before(frame, return_frame=False):
     x0 = 0.08
     x1 = 0.96
     y0 = 0.20  # Made a bit taller to have room to fit the text
-    y1 = 0.30
+    #y1 = 0.30
+    y1 = 0.40 # Changed when at Whiteley (after demo day) as camera angle is steeper
 
     # x0, x1, y0, y1 = (0, 1, 0, 1)
 
@@ -98,7 +54,6 @@ def detect_batch_expiry_and_best_before(frame, return_frame=False):
     if info_frame is None:
         return None, None
 
-    #preprocessed_info_frame = text_preprocessing(np.copy(info_frame))
     preprocessed_info_frame = process_dot_matrix_print(np.copy(info_frame))
     info_frame = cv2.resize(info_frame, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
     preprocessed_info_frame = cv2.resize(preprocessed_info_frame, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
